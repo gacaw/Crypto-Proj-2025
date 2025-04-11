@@ -27,12 +27,12 @@ class EllipticCurve:
             return None # infinity 
 
         if P == Q:  # point doubling
-            s = (3 * x1**2 + self.a) * pow(2 * y1, -1, self.p) % self.p
+            m = (3 * x1**2 + self.a) * pow(2 * y1, -1, self.p) % self.p
         else:  # point addition
-            s = (y2 - y1) * pow(x2 - x1, -1, self.p) % self.p
+            m = (y2 - y1) * pow(x2 - x1, -1, self.p) % self.p
 
-        x3 = (s**2 - x1 - x2) % self.p
-        y3 = (s * (x1 - x3) - y1) % self.p
+        x3 = (m**2 - x1 - x2) % self.p
+        y3 = (m * (x1 - x3) - y1) % self.p
 
         return (x3, y3)
 
@@ -70,6 +70,10 @@ if __name__ == "__main__":
     point = curve.scalar_multiplication(scalar, G)
     print(f"{scalar} * G = {point}")
     
+    print(f"{G} + {G} = {curve.point_addition(G, G)}")
+    
     # checking by hand, it looks like this works 
+    
+    
     
     

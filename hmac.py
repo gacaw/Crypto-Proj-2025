@@ -1,4 +1,4 @@
-# Left rotate a 32-bit integer n by b bits 
+# left rotate a 32-bit integer n by b bits 
 def left_rotate(n, b):
     return ((n << b) | (n >> (32 - b))) & 0xFFFFFFFF
 
@@ -92,7 +92,6 @@ def hmac(key: bytes, message: bytes, hash_function, block_size=64):
     return hash_function(opad + inner_hash).encode('utf-8')
     
     
-# Example usage
 key = b"my key"
 text = b"hello world"
 
