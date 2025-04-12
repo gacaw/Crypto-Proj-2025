@@ -27,9 +27,9 @@ class EllipticCurve:
             return None # infinity 
 
         if P == Q:  # point doubling
-            m = (3 * x1**2 + self.a) * pow(2 * y1, -1, self.p) % self.p
+            m = (3 * x1**2 + self.a) * (pow(2 * y1, -1, self.p)) % self.p
         else:  # point addition
-            m = (y2 - y1) * pow(x2 - x1, -1, self.p) % self.p
+            m = (y2 - y1) * (pow(x2 - x1, -1, self.p)) % self.p
 
         x3 = (m**2 - x1 - x2) % self.p
         y3 = (m * (x1 - x3) - y1) % self.p

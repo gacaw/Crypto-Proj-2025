@@ -91,12 +91,12 @@ def hmac(key: bytes, message: bytes, hash_function, block_size=64):
     inner_hash = hash_function(ipad + message).encode('utf-8')
     return hash_function(opad + inner_hash).encode('utf-8')
     
-    
+"""  
 key = b"my key"
 text = b"hello world"
 
 print(hmac(key, text, sha1).decode("utf-8"))
-
+"""
 
 
 
