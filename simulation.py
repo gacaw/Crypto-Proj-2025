@@ -118,6 +118,6 @@ if __name__ == "__main__":
     
     bank = Bank(100) 
     
-    sessionKeyGen(bank)
+    # sessionKeyGen(bank) # doesn't work because ECC is a nightmare and the curves need to be massive for the plaintext to point conversion to work, but also have to be small enough to not automatically become floating point numbers and lose some precision and I really don't think there is a perfect middle ground and I'm absolutely out of ideas 
     
     #print(bank.getPublic())
