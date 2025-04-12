@@ -39,11 +39,11 @@ class EllipticCurve:
     def scalar_multiplication(self, k, P):
         result = None  # start at infinity 
         for i in range(k):
-            result = curve.point_addition(result, P)
+            result = self.point_addition(result, P)
         return result
 
 
-
+"""
 if __name__ == "__main__":
     
     curve = EllipticCurve(a=2, b=3, p=97)
@@ -73,7 +73,7 @@ if __name__ == "__main__":
     print(f"{G} + {G} = {curve.point_addition(G, G)}")
     
     # checking by hand, it looks like this works 
-    
+"""
     
     
     
