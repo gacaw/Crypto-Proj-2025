@@ -4,31 +4,77 @@ import random
 import math
 
 import ecc
-import hmac
+import hmacFile
+import des 
 
 class Alice:
     
     def __init__(self):
         self.__session_key = -1
+        self.__key1 = -1
+        self.__key2 = -1 
+        self.__key3 = -1
         
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
+        self.__key1 = self.__session_key[0:len(sessionKey)//3]
+        self.__key1 = des.messageToBinary(self.__key1)[0:10]
+        self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
+        self.__key2 = des.messageToBinary(self.__key2)[0:10]
+        self.__key3 = self.__session_key[2*len(sessionKey)//3:]
+        self.__key3 = des.messageToBinary(self.__key3)[0:10]
+        
+    def depositMoneyMessage(self, money): 
+        message = "d|" + str(money) 
+        message = des.messageToBinary(message) 
+        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+    
+    def withdrawMoneyMessage(self, money): 
+        message = "w|" + str(money) 
+        message = des.messageToBinary(message) 
+        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+    
+    def balanceMoneyMessage(self): 
+        message = "b|" 
+        message = des.messageToBinary(message) 
+        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        
+    def decryptBalance(self, message, key1, key2, key3): 
+        return 5
 
 class Bank:
     
     def __init__(self, money):
-        self.money = money 
+        self.__money = money 
         self.__private_key = -1
         self.__public_key = -1
+        self.__session_key = -1
+        self.__key1 = -1
+        self.__key2 = -1 
+        self.__key3 = -1
+    
+    def setSessionKey(self, sessionKey):
+        self.__session_key = sessionKey 
+        self.__key1 = self.__session_key[0:len(sessionKey)//3]
+        self.__key1 = des.messageToBinary(self.__key1)[0:10]
+        self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
+        self.__key2 = des.messageToBinary(self.__key2)[0:10]
+        self.__key3 = self.__session_key[2*len(sessionKey)//3:]
+        self.__key3 = des.messageToBinary(self.__key3)[0:10]
         
     def getMoney(self):
-        return self.money 
+        return self.__money 
     
     def addMoney(self, newMoney): 
-        self.money += newMoney 
+        self.__money += newMoney 
+        return -2 # marks success. Can never fail at depositing money 
         
     def subMoney(self, newMoney): 
-        self.money -= newMoney 
+        if(self.__money - newMoney < 0): 
+            return None # marks failure due to not enough funds 
+        else: 
+            self.__money -= newMoney
+            return -2 # marks success 
         
     def setKeys(self, private, public): 
         self.__private_key = private 
@@ -36,6 +82,22 @@ class Bank:
         
     def getPublic(self):
         return self.__public_key
+    
+    def decryptMessage(self, message): 
+        message = des.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
+        message = des.binaryToMessage(message) 
+        #print("!", message)
+        action = message[0] 
+        #print(message[2:])
+        if(action == 'd'): 
+            rc = self.addMoney(int(message[2:]))
+            return rc 
+        elif(action == 'w'): 
+            rc = self.subMoney(int(message[2:]))
+            return rc 
+        elif(action == 'b'): 
+            return self.getMoney() 
+        return -1 # marks some weird error 
     
 # random string of 10-15 lowercase letters (can't be longer for some reason)
 def generateSessionKey():
@@ -89,7 +151,7 @@ def fasterModularSqrt(y, p):
 
     return r
 
-def sessionKeyGen(bank): 
+def sessionKeyGen(bank, hmacFxn, shaFxn): 
     # using a smaller stackoverflow curve since the standard ones are way too large for this code to handle 
     curve = ecc.EllipticCurve(a=int(0xfffffffffffffffffffffffffffffffefffffffffffffffc), b=int(0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1), p=int(0xfffffffffffffffffffffffffffffffeffffffffffffffff))
                                     
@@ -100,7 +162,7 @@ def sessionKeyGen(bank):
     #yVal = math.sqrt(xVal**3 + curve.a * xVal + curve.b) % curve.p
     G = (int(0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012), int(0x07192b95ffc8da78631011ed6b24cdd573f977a11e794811))  
         
-    print("G:", G)
+    #print("G:", G)
     
     #xVal = 192779291135662930711103080
     #yVal = math.sqrt(xVal**3 + curve.a * xVal + curve.b) % curve.p
@@ -118,14 +180,14 @@ def sessionKeyGen(bank):
     
     #print(f"Curve: y^2 = x^3 + {curve.a}x + {curve.b} (mod {curve.p})")
     #print("Base Point:", G)
-    print("Private Key:", private_key)
-    print("Public Key:", public_key)
+    #print("Private Key:", private_key)
+    #print("Public Key:", public_key)
     
     client_private_key = random.randint(1, privateKeySize) 
     client_public_key = curve.scalar_multiplication(client_private_key, G)
     
-    print("Private Key:", client_private_key)
-    print("Public Key:", client_public_key) 
+    #print("Private Key:", client_private_key)
+    #print("Public Key:", client_public_key) 
     
     clientID = random.randint(1, privateKeySize) 
     sessionKey = random.randint(1, privateKeySize) 
@@ -136,18 +198,19 @@ def sessionKeyGen(bank):
     #pText = "hello" # change to a random string representing the session key 
     pText = generateSessionKey()
     #pText = pText.encode('utf-8') 
-    print("!", pText)
+    #print("!", pText)
     
     #shared_secret_Alice = curve.scalar_multiplication(client_private_key, public_key) 
     #shared_secret_Alice_tag = hmac.sha1(str(shared_secret_Alice[0]).encode('utf-8'))[:5]
     shared_secret_Alice = curve.scalar_multiplication(client_private_key, public_key) 
     key = str(shared_secret_Alice[0]).encode('utf-8')
-    shared_secret_Alice_tag = hmac.hmac(key, pText.encode('utf-8'), hmac.sha1).decode("utf-8")[:5]
+    shared_secret_Alice_tag = hmacFxn(key, pText.encode('utf-8'), shaFxn).decode("utf-8")[:5]
     
     
-    pText = pText + "|" + shared_secret_Alice_tag
+    pTextNew = pText + "|" + shared_secret_Alice_tag
+    pText = pTextNew # for some reason the terminal complained when I did this all in one line 
     
-    print("!!", pText)
+    #print("!!", pText)
     
     
     #print(hmac.sha1(pText))
@@ -200,7 +263,7 @@ def sessionKeyGen(bank):
     #print(byte_sequence)
     pText = byte_sequence.decode('utf-8')
 
-    print(pText) # session key restored 
+    #print(pText) # session key restored 
     
     parts = pText.split("|")
     sessionKey = parts[0]
@@ -208,7 +271,7 @@ def sessionKeyGen(bank):
     
     shared_secret_Bob = curve.scalar_multiplication(private_key, client_public_key) 
     key = str(shared_secret_Bob[0]).encode('utf-8')
-    shared_secret_Bob_tag = hmac.hmac(key, sessionKey.encode('utf-8'), hmac.sha1).decode("utf-8")[:5] 
+    shared_secret_Bob_tag = hmacFxn(key, sessionKey.encode('utf-8'), shaFxn).decode("utf-8")[:5] 
     #hmac.sha1(str(shared_secret_Bob[0]).encode('utf-8'))[:5]
     
     #print(mac_identifier, shared_secret_Bob_tag)
@@ -227,15 +290,21 @@ def sessionKeyGen(bank):
 if __name__ == "__main__": 
     # for some reason something is printing even before main(). Idk what's going on there. It's probably fine. 
     
-    bank = Bank(100) 
+    myHmac = hmacFile.Hmac() 
+    
+    bank = Bank(0) 
     alice = Alice()
     
+    
     # Uncomment when done. This just takes some time. 
-    """
+    print(type(myHmac))
+    text = b"hello world"
+    print(myHmac.sha1(text))
     # generates a session key five times and concatenates to make up for the weird ECC bug that only allows for a maximum of 15 char long session keys 
+    """
     sessionKeyArr = []
     for i in range(5):
-        sessionKey = sessionKeyGen(bank) # doesn't work because ECC is a nightmare and the curves need to be massive for the plaintext to point conversion to work, but also have to be small enough to not automatically become floating point numbers and lose some precision and I really don't think there is a perfect middle ground and I'm absolutely out of ideas 
+        sessionKey = sessionKeyGen(bank, myHmac.hmac, myHmac.sha1) # doesn't work because ECC is a nightmare and the curves need to be massive for the plaintext to point conversion to work, but also have to be small enough to not automatically become floating point numbers and lose some precision and I really don't think there is a perfect middle ground and I'm absolutely out of ideas 
         sessionKeyArr.append(sessionKey)
     sessionKey = "".join(sessionKeyArr)    
     """
@@ -243,7 +312,63 @@ if __name__ == "__main__":
     sessionKey = "zmfubxgxfxqvdmnrwrkmsfclmkizugxjpbjfihtsygoyuzdnugzdyngoshnpznz"
         
     alice.setSessionKey(sessionKey)
+    bank.setSessionKey(sessionKey)
     
-    print(sessionKey)
+    #alice.depositMoney(5)
+    
+    #print(sessionKey)
     
     #print(bank.getPublic())
+    
+    # This part cannot be run in VSCode because VSCode for some reason does not support input() 
+    # Instead use Spyder or an equivalent interface 
+    while(1): 
+        mode = -1
+        amount = -1
+        user_input = input("Enter an action (deposit <num>)(withdraw <num>)(balance): ")
+        if(user_input[0:8] != "deposit " and user_input[0:9] != "withdraw " and user_input != "balance"):
+            print("Please enter a valid action")
+            continue 
+        if(user_input[0:8] == "deposit "):
+            mode = 0
+            if(len(user_input) < 9):
+                print("Please enter a valid action")
+                continue 
+            amount = int(user_input[8:])
+            
+            encStr = alice.depositMoneyMessage(amount) 
+            rc = bank.decryptMessage(encStr) 
+            if(rc == -1):
+                print("An error occurred")
+            elif(rc == -2): 
+                print("Successfully deposited", amount) 
+            else: 
+                print("Balance:", rc)
+            
+            
+            
+        elif(user_input[0:9] == "withdraw "):
+            mode = 1
+            if(len(user_input) < 10):
+                print("Please enter a valid action")
+                continue 
+            amount = int(user_input[9:])
+            
+            encStr = alice.withdrawMoneyMessage(amount) 
+            rc = bank.decryptMessage(encStr) 
+            if(rc == -1):
+                print("An error occurred")
+            elif(rc == -2): 
+                print("Successfully withdrew", amount) 
+            else: 
+                print("You do not have sufficient funds in the bank to withdraw:", amount)
+        else: 
+            mode = 2  # check balance 
+            
+            encStr = alice.balanceMoneyMessage() 
+            rc = bank.decryptMessage(encStr) 
+            if(rc == -1):
+                print("An error occurred")
+            else: 
+                print("Balance:", rc)
+        #print(amount)

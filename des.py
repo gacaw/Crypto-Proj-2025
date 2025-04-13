@@ -2,6 +2,17 @@
 
 import math 
 
+def messageToBinary(message): 
+    return ''.join(format(ord(char), '08b') for char in message) 
+
+# this requires your message to be exactly a multiple of 8 bits long 
+def binaryToMessage(message): 
+    byteStrings = []
+    for i in range(0, len(message), 8):
+        byteStrings.append(message[i:i+8])
+    return ''.join(chr(int(val, 2)) for val in byteStrings)
+    
+
 def DES(mode, input, argKey):
     S0 = [[1,0,3,2], [3,2,1,0], [0,2,1,3], [3,1,3,2]]
     #print(S0)
@@ -390,8 +401,8 @@ def tripleDES(mode, message, key1, key2, key3):
 # 00011011011101111010011000100011
 # 00011011011101111010011000100011 
 
-print(tripleDES(0,"00011101111010101010111011011","1101011110", "1100011010", "1000011110"))
-print(tripleDES(1,"10111001100101010110010011010000","1000011110", "1100011010", "1101011110"))
+#print(tripleDES(0,"00011101111010101010111011011","1101011110", "1100011010", "1000011110"))
+#print(tripleDES(1,"10111001100101010110010011010000","1000011110", "1100011010", "1101011110"))
 
 
 # 10111001100101010110010011010000 <-- ctext 
@@ -399,3 +410,7 @@ print(tripleDES(1,"10111001100101010110010011010000","1000011110", "1100011010",
 # 00011101111010101010111011011    <-- original 
 # 00011101111010101010111011011000
 # 00011101111010101010111011011000 
+
+
+#print(messageToBinary("hello world"))
+#print(binaryToMessage("0110100001100101011011000110110001101111001000000111011101101111011100100110110001100100"))
