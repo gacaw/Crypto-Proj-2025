@@ -29,6 +29,7 @@ class Alice:
     def depositMoneyMessage(self, money): 
         message = "d|" + str(money) 
         message = desLarge.messageToBinary(message) 
+        #print(len(self.__key1), len(self.__key2), len(self.__key3), message)
         return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def withdrawMoneyMessage(self, money): 
@@ -92,10 +93,25 @@ class Bank:
         action = message[0] 
         #print(message[2:])
         if(action == 'd'): 
-            rc = self.addMoney(int(message[2:]))
+            #print(len(message[2:]))
+            index = 0
+            stopIndex = -1
+            for char in message: 
+                if char == '\x00' and stopIndex == -1:
+                    stopIndex = index
+                    #print("yes")
+                index += 1
+            rc = self.addMoney(int(message[2:stopIndex]))
             return rc 
-        elif(action == 'w'): 
-            rc = self.subMoney(int(message[2:]))
+        elif(action == 'w'):
+            index = 0
+            stopIndex = -1
+            for char in message: 
+                if char == '\x00' and stopIndex == -1:
+                    stopIndex = index
+                    #print("yes")
+                index += 1
+            rc = self.subMoney(int(message[2:stopIndex]))
             return rc 
         elif(action == 'b'): 
             return self.getMoney() 
@@ -357,9 +373,11 @@ if __name__ == "__main__":
             if(len(user_input) < 9):
                 print("Please enter a valid action")
                 continue 
+            #print(user_input[8:])
             amount = int(user_input[8:])
             
             encStr = alice.depositMoneyMessage(amount) 
+            #print(encStr)
             rc = bank.decryptMessage(encStr) 
             if(rc == -1):
                 print("An error occurred")
