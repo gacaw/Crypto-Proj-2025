@@ -8,15 +8,9 @@ Project Description
 
 This is a group (2-3 students) project and you are free to choose your team mates.
 
-You (as a group) will be implementing your own version of SSH/SSL protocol which supports your own
-implementation of the ciphers including the symmetric key ones (e.g., DES), PKC under ciphertext only
-adversary, semantically secure PKC, and homomorphic cipher as we discussed in the class and you
-implemented in homeworks. For digital signature schemes, use one that is based on PKC, for MAC use
-HMAC, for hash functions use SHA. You will have to implement your own random number generators.
+You (as a group) will be implementing your own version of SSH/SSL protocol which supports your own implementation of the ciphers including the symmetric key ones (e.g., DES), PKC under ciphertext only adversary, semantically secure PKC, and homomorphic cipher as we discussed in the class and you implemented in homeworks. For digital signature schemes, use one that is based on PKC, for MAC use HMAC, for hash functions use SHA. You will have to implement your own random number generators.
 
-The project will be implemented as a client-server protocol to mimic transactions/ebanking between an
-ATM (client) and the bank (server). Your project will enable banking operations to deposit, withdraw
-money, and check balance via ATM by accessing the bank.
+The project will be implemented as a client-server protocol to mimic transactions/ebanking between an ATM (client) and the bank (server). Your project will enable banking operations to deposit, withdraw money, and check balance via ATM by accessing the bank.
 
 You are allowed to use sockets programming libraries. You can use already implemented tools for
 primality testing, integer factorization, discrete logarithm. You cannot use already implemented ciphers.
