@@ -1,6 +1,5 @@
 # bank transaction simulator: 
 from datetime import datetime
-import random
 import math
 
 import ecc
@@ -8,6 +7,10 @@ import hmacFile
 import desLarge 
 
 prng = None 
+
+from ATMSSL import Client
+from BANKSSL import Server
+import socket
 
 class Alice:
     
@@ -304,8 +307,110 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
     
     
     return sessionKey
+
+if __name__ == "__main__":
+    # Initialize the server
+    server = Server()
+    server.generate_keys()
+    
+    now = datetime.now()
+    timestamp = now.timestamp()
+    
+    binaryTimestamp = desLarge.messageToBinary(str(timestamp)) 
+    prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
+    prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
+    prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
+    prngSeed = binaryTimestamp[3:35] + binaryTimestamp[-33:-1]
     
     
+    prng = desLarge.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    
+
+    # Start the server in a separate thread
+    import threading
+    def run_server():
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+            server_socket.bind(('localhost', 12345))
+            server_socket.listen(1)
+            print("Server is listening...")
+            conn, addr = server_socket.accept()
+            with conn:
+                print(f"Connected by {addr}")
+                server.perform_handshake(conn)
+
+    server_thread = threading.Thread(target=run_server, daemon=True)
+    server_thread.start()
+
+    # Initialize the client
+    client = Client()
+    client.generate_keys()
+
+    # Perform the handshake
+    server_address = ('localhost', 12345)
+    if client.perform_handshake(server_address):
+        # Use the session key established during the handshake
+        #session_key = client.session_key
+        
+        # Uncomment when done. This just takes some time. 
+        # generates a session key fifteen times and concatenates to make up for the weird ECC bug that only allows for a maximum of 15 char long session keys 
+        alice = Alice()
+        bank = Bank(0)
+        myHmac = hmacFile.Hmac() 
+
+        
+        sessionKeyArr = []
+        for i in range(15):
+            sessionKey = sessionKeyGen(bank, myHmac.hmac, myHmac.sha1) # doesn't work because ECC is a nightmare and the curves need to be massive for the plaintext to point conversion to work, but also have to be small enough to not automatically become floating point numbers and lose some precision and I really don't think there is a perfect middle ground and I'm absolutely out of ideas 
+            sessionKeyArr.append(sessionKey)
+        session_key = "".join(sessionKeyArr)    
+        
+        # Uncomment this if you don't want to wait for keygen. Not for use in final submission since it's hardcoded 
+        #session_key = "kqlwgspulaeqgruwjpmxlfnkqvujlgchoclupvvglpjqqabuhkchagctqscnwgqjninmvuruanexzlihscewepktkgybzpgmggmxfhnbkstytqykilejxymjjsumfdnreozgczlqvakxghbuvyrgjhltndgryusxxymsfqpvgfhqmvaqpimrqomnj"
+
+        #print(session_key)
+        # Set the session key for Alice and the Bank
+        alice.setSessionKey(session_key)
+        bank.setSessionKey(session_key)
+
+        # Banking operations
+        while True:
+            user_input = input("Enter an action (deposit <num>)(withdraw <num>)(balance): ")
+            if user_input.startswith("deposit "):
+                amount = int(user_input.split()[1])
+                if(amount < 0):
+                    print("Can't deposit a negative amount")
+                    continue
+                enc_message = alice.depositMoneyMessage(amount)
+                response = bank.decryptMessage(enc_message)
+                if response == -2:
+                    print(f"Successfully deposited {amount}")
+                else:
+                    print("Error occurred during deposit.")
+            elif user_input.startswith("withdraw "):
+                amount = int(user_input.split()[1])
+                if(amount < 0):
+                    print("Can't withdraw a negative amount")
+                    continue
+                enc_message = alice.withdrawMoneyMessage(amount)
+                response = bank.decryptMessage(enc_message)
+                if response == -2:
+                    print(f"Successfully withdrew {amount}")
+                else:
+                    print("Insufficient funds.")
+            elif user_input == "balance":
+                enc_message = alice.balanceMoneyMessage()
+                balance = bank.decryptMessage(enc_message)
+                print(f"Balance: {balance}")
+            elif user_input == "q":
+                print("Exiting...")
+                break
+            else:
+                print("Invalid action. Try again. or q to quit.")
+
+
+
+#old main saved
+'''
 
 if __name__ == "__main__": 
     # for some reason something is printing even before main(). Idk what's going on there. It's probably fine. 
@@ -413,3 +518,6 @@ if __name__ == "__main__":
             else: 
                 print("Balance:", rc)
         #print(amount)
+
+
+'''
