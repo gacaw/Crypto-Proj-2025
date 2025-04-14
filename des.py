@@ -2,6 +2,24 @@
 
 import math 
 
+
+class Prng:
+    def __init__(self, key1, key2, key3, seed): # keys of size 10, seed of size 8 
+        self.__key1 = key1
+        self.__key2 = key2
+        self.__key3 = key3
+        self.__val = seed
+        
+
+    def getNext(self):
+        rand_val = tripleDES(0, self.__val, self.__key1, self.__key2, self.__key3)            
+        self.__val = rand_val
+        return rand_val
+
+    def nextInt(self):
+        randStr = self.getNext()
+        return int(randStr, 2)
+
 def messageToBinary(message): 
     return ''.join(format(ord(char), '08b') for char in message) 
 
@@ -13,12 +31,12 @@ def binaryToMessage(message):
     return ''.join(chr(int(val, 2)) for val in byteStrings)
     
 
-def DES(mode, input, argKey):
+def DES(mode, inputVal, argKey):
     S0 = [[1,0,3,2], [3,2,1,0], [0,2,1,3], [3,1,3,2]]
     #print(S0)
     S1 = [[0,1,2,3], [2,0,1,3], [3,0,1,0], [2,1,0,3]]
     
-    inputSize = len(input)
+    inputSize = len(inputVal)
     pTextSize = inputSize 
     while(pTextSize % 8 != 0): 
         pTextSize += 1 
@@ -28,7 +46,7 @@ def DES(mode, input, argKey):
         pText.append('0')
     for i in range(pTextSize):
         if(i < inputSize): 
-            pText[i] = int(input[i])
+            pText[i] = int(inputVal[i])
         else:
             pText[i] = 0 
             

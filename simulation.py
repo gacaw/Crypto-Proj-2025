@@ -1,11 +1,13 @@
 # bank transaction simulator: 
-
+from datetime import datetime
 import random
 import math
 
 import ecc
 import hmacFile
-import des 
+import desLarge 
+
+prng = None 
 
 class Alice:
     
@@ -18,26 +20,26 @@ class Alice:
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = des.messageToBinary(self.__key1)[0:10]
+        self.__key1 = desLarge.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = des.messageToBinary(self.__key2)[0:10]
+        self.__key2 = desLarge.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = des.messageToBinary(self.__key3)[0:10]
+        self.__key3 = desLarge.messageToBinary(self.__key3)[0:64]
         
     def depositMoneyMessage(self, money): 
         message = "d|" + str(money) 
-        message = des.messageToBinary(message) 
-        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        message = desLarge.messageToBinary(message) 
+        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def withdrawMoneyMessage(self, money): 
         message = "w|" + str(money) 
-        message = des.messageToBinary(message) 
-        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        message = desLarge.messageToBinary(message) 
+        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def balanceMoneyMessage(self): 
         message = "b|" 
-        message = des.messageToBinary(message) 
-        return(des.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        message = desLarge.messageToBinary(message) 
+        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
         
     def decryptBalance(self, message, key1, key2, key3): 
         return 5
@@ -56,11 +58,11 @@ class Bank:
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = des.messageToBinary(self.__key1)[0:10]
+        self.__key1 = desLarge.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = des.messageToBinary(self.__key2)[0:10]
+        self.__key2 = desLarge.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = des.messageToBinary(self.__key3)[0:10]
+        self.__key3 = desLarge.messageToBinary(self.__key3)[0:64]
         
     def getMoney(self):
         return self.__money 
@@ -84,8 +86,8 @@ class Bank:
         return self.__public_key
     
     def decryptMessage(self, message): 
-        message = des.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
-        message = des.binaryToMessage(message) 
+        message = desLarge.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
+        message = desLarge.binaryToMessage(message) 
         #print("!", message)
         action = message[0] 
         #print(message[2:])
@@ -102,8 +104,10 @@ class Bank:
 # random string of 10-15 lowercase letters (can't be longer for some reason)
 def generateSessionKey():
     str = ""
-    for i in range(random.randint(10,15)):
-        tempNum = random.randint(1,26) 
+    #for i in range(random.randint(10,15)):
+    for i in range((prng.nextInt() % 6) + 10):
+        #tempNum = random.randint(1,26) 
+        tempNum = (prng.nextInt() % 26) + 1
         str += chr(ord('`')+tempNum)
     return str
 
@@ -172,7 +176,7 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
 
     privateKeySize = 100000 # extend this to 1 million when submitting. This is just barely fast enough to test 
 
-    private_key = random.randint(1, privateKeySize) 
+    private_key = (prng.nextInt() % privateKeySize) + 1 #random.randint(1, privateKeySize) 
     public_key = curve.scalar_multiplication(private_key, G)
 
     bank.setKeys(private_key, public_key)
@@ -183,14 +187,14 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
     #print("Private Key:", private_key)
     #print("Public Key:", public_key)
     
-    client_private_key = random.randint(1, privateKeySize) 
+    client_private_key = (prng.nextInt() % privateKeySize) + 1 #random.randint(1, privateKeySize) 
     client_public_key = curve.scalar_multiplication(client_private_key, G)
     
     #print("Private Key:", client_private_key)
     #print("Public Key:", client_public_key) 
     
-    clientID = random.randint(1, privateKeySize) 
-    sessionKey = random.randint(1, privateKeySize) 
+    clientID = (prng.nextInt() % privateKeySize) + 1 #random.randint(1, privateKeySize) 
+    sessionKey = (prng.nextInt() % privateKeySize) + 1 #random.randint(1, privateKeySize) 
     
     # we don't actually have a separate server set up so the rest of this is really just a simulation, but you get the gist: 
     
@@ -237,7 +241,7 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
     
     # ctext is of the form {kG,Pm +kPb}
     
-    k = random.randint(1, 10000) # not really sure how large this should be. This should be fine though 
+    k = (prng.nextInt() % 10000) + 1 #random.randint(1, 10000) # not really sure how large this should be. This should be fine though 
     
     cText0, cText1 = (curve.scalar_multiplication(k, G), curve.point_addition((hash_x, y), curve.scalar_multiplication(k, public_key))) # this SHOULD work 
     
@@ -290,6 +294,22 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
 if __name__ == "__main__": 
     # for some reason something is printing even before main(). Idk what's going on there. It's probably fine. 
     
+    now = datetime.now()
+    timestamp = now.timestamp()
+    
+    #print(desLarge.messageToBinary(str(timestamp)))
+    binaryTimestamp = desLarge.messageToBinary(str(timestamp)) 
+    prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
+    prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
+    prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
+    prngSeed = binaryTimestamp[3:35] + binaryTimestamp[-33:-1]
+    
+    #print(len(prngKey1), len(prngKey2), len(prngKey3), len(prngSeed))
+    
+    prng = desLarge.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    
+   
+    
     myHmac = hmacFile.Hmac() 
     
     bank = Bank(0) 
@@ -297,19 +317,21 @@ if __name__ == "__main__":
     
     
     # Uncomment when done. This just takes some time. 
-    print(type(myHmac))
-    text = b"hello world"
-    print(myHmac.sha1(text))
+    #print(type(myHmac))
+    #text = b"hello world"
+    #print(myHmac.sha1(text))
     # generates a session key five times and concatenates to make up for the weird ECC bug that only allows for a maximum of 15 char long session keys 
+    
     """
     sessionKeyArr = []
-    for i in range(5):
+    for i in range(15):
         sessionKey = sessionKeyGen(bank, myHmac.hmac, myHmac.sha1) # doesn't work because ECC is a nightmare and the curves need to be massive for the plaintext to point conversion to work, but also have to be small enough to not automatically become floating point numbers and lose some precision and I really don't think there is a perfect middle ground and I'm absolutely out of ideas 
         sessionKeyArr.append(sessionKey)
     sessionKey = "".join(sessionKeyArr)    
     """
-     
-    sessionKey = "zmfubxgxfxqvdmnrwrkmsfclmkizugxjpbjfihtsygoyuzdnugzdyngoshnpznz"
+    #sessionKey = "zmfubxgxfxqvdmnrwrkmsfclmkizugxjpbjfihtsygoyuzdnugzdyngoshnpznz" # <-- old val 
+    sessionKey = "kqlwgspulaeqgruwjpmxlfnkqvujlgchoclupvvglpjqqabuhkchagctqscnwgqjninmvuruanexzlihscewepktkgybzpgmggmxfhnbkstytqykilejxymjjsumfdnreozgczlqvakxghbuvyrgjhltndgryusxxymsfqpvgfhqmvaqpimrqomnj"
+        
         
     alice.setSessionKey(sessionKey)
     bank.setSessionKey(sessionKey)
@@ -317,6 +339,7 @@ if __name__ == "__main__":
     #alice.depositMoney(5)
     
     #print(sessionKey)
+    #print(len(sessionKey))
     
     #print(bank.getPublic())
     
