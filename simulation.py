@@ -4,7 +4,7 @@ from datetime import datetime
 
 import des
 from hmacFile import Hmac
-from ecc import EllipticCurve
+from ECC import EllipticCurve
 
 from ATMSSL import Client
 from BANKSSL import Server

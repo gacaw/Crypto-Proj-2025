@@ -3,7 +3,7 @@ from datetime import datetime
 
 from hmacFile import Hmac
 from des import Prng
-from ecc import EllipticCurve
+from ECC import EllipticCurve
 
 
 class Server:
