@@ -1,7 +1,8 @@
 import socket
 import ecc
 import hmacFile
-import desLarge
+from des import Prng
+from datetime import datetime
 
 class Client:
     def __init__(self):
@@ -16,7 +17,22 @@ class Client:
         self.hmac = hmacFile.Hmac()
 
     def generate_keys(self):
-        self.private_key = 12345  # Replace with a secure random number
+        # Get the current timestamp
+        now = datetime.now()
+        timestamp = now.timestamp()
+
+        # Convert the timestamp to binary
+        binary_timestamp = ''.join(format(ord(char), '08b') for char in str(timestamp))
+
+        # Extract 10-bit keys and an 8-bit seed from the binary timestamp
+        key1 = binary_timestamp[0:10]
+        key2 = binary_timestamp[10:20]
+        key3 = binary_timestamp[20:30]
+        seed = binary_timestamp[30:38]
+
+        prng = Prng(key1, key2, key3, seed)
+
+        self.private_key = prng.nextInt()
         self.public_key = self.curve.scalar_multiplication(self.private_key, self.G)
 
     def perform_handshake(self, server_address):
