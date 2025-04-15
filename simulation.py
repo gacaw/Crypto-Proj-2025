@@ -8,6 +8,7 @@ from ECC import EllipticCurve
 
 from ATMSSL import Client
 from BANKSSL import Server
+import time
 
 prng = None 
 
@@ -33,23 +34,22 @@ class Alice:
         self.TripleDES = des.TripleDES(self.__key1, self.__key2, self.__key3)
         
     def depositMoneyMessage(self, money): 
-        message = "d|" + str(money) 
-        message = des.messageToBinary(message) 
-        #print(len(self.__key1), len(self.__key2), len(self.__key3), message)
-        return(self.TripleDES.encrypt(message))
-        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
-    
+        nonce = str(int(time.time() * 1000))  # Generate a timestamp-based nonce
+        message = f"d|{money}|{nonce}"
+        message = des.messageToBinary(message)
+        return self.TripleDES.encrypt(message)
+
     def withdrawMoneyMessage(self, money): 
-        message = "w|" + str(money) 
-        message = des.messageToBinary(message) 
-        return(self.TripleDES.encrypt(message))
-        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
-    
+        nonce = str(int(time.time() * 1000))  # Generate a timestamp-based nonce
+        message = f"w|{money}|{nonce}"
+        message = des.messageToBinary(message)
+        return self.TripleDES.encrypt(message)
+
     def balanceMoneyMessage(self): 
-        message = "b|" 
-        message = des.messageToBinary(message) 
-        return(self.TripleDES.encrypt(message))
-        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        nonce = str(int(time.time() * 1000))  # Generate a timestamp-based nonce
+        message = f"b|{nonce}"
+        message = des.messageToBinary(message)
+        return self.TripleDES.encrypt(message)
         
     def decryptBalance(self, message, key1, key2, key3): 
         return 5
@@ -65,6 +65,7 @@ class Bank:
         self.__key2 = -1 
         self.__key3 = -1
 
+        self.replay_cache = set()
         self.TripleDES = None
     
     def setSessionKey(self, sessionKey):
@@ -103,29 +104,28 @@ class Bank:
         message = self.TripleDES.decrypt(message)
         # message = des.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
         message = des.binaryToMessage(message) 
+
+        parts = message.split('|')
+
         #print("!", message)
-        action = message[0] 
+        action = parts[0] 
         #print(message[2:])
+
+        nonce = parts[-1]
+
+        if nonce in self.replay_cache:
+            print("Replay attack detected!")
+            return -1
+        self.replay_cache.add(nonce)
+
+        if len(self.replay_cache) > 1000:  # Limit cache size
+            self.replay_cache.pop()
+
         if(action == 'd'): 
-            #print(len(message[2:]))
-            index = 0
-            stopIndex = -1
-            for char in message: 
-                if char == '\x00' and stopIndex == -1:
-                    stopIndex = index
-                    #print("yes")
-                index += 1
-            rc = self.addMoney(int(message[2:stopIndex]))
+            rc = self.addMoney(int(parts[1]))
             return rc 
         elif(action == 'w'):
-            index = 0
-            stopIndex = -1
-            for char in message: 
-                if char == '\x00' and stopIndex == -1:
-                    stopIndex = index
-                    #print("yes")
-                index += 1
-            rc = self.subMoney(int(message[2:stopIndex]))
+            rc = self.subMoney(int(parts[1]))
             return rc 
         elif(action == 'b'): 
             return self.getMoney() 
