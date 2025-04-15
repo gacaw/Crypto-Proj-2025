@@ -1,9 +1,9 @@
 import socket
 from datetime import datetime
 
-from HMAC import Hmac
-from DES import Prng
-from ECC import EllipticCurve
+from hmacFile import Hmac
+from des import Prng
+from ecc import EllipticCurve
 
 
 class Server:

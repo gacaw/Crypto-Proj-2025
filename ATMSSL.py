@@ -1,9 +1,9 @@
 import socket
 from datetime import datetime
 
-from DES import Prng
-from HMAC import Hmac
-from ECC import EllipticCurve
+from des import Prng
+from hmacFile import Hmac
+from ecc import EllipticCurve
 
 
 class Client:
