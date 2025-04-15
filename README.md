@@ -1,10 +1,10 @@
 # Crypto-Proj-2025
+
 Crypto &amp; Network Security Project 2025
 
 Cryptography and Network Security I
 Spring 2025
 Project Description
-
 
 This is a group (2-3 students) project and you are free to choose your team mates.
 
@@ -19,6 +19,7 @@ Each team will play white hat and black hat roles as described below:
 TIME LINE & Grading:
 
 White-hat part [60 points] due 11:59AM, April 15, 2025: The goal is to
+
     (i) [20pnts] negotiate and establish a secure channel using the SSL/SSH handshake protocol.
         a. Cyphertext only threat model is the minimum requirement to be met. ECC implementation is
         required.
@@ -29,14 +30,16 @@ White-hat part [60 points] due 11:59AM, April 15, 2025: The goal is to
     (ii) [20pnts] pass back and forth messages to implement the banking operations above.
 
     (iii) [20pnts] You will write a document explaining your implementation as a part of your communication
-    intensive requirement and pass the code to the TA.
-    We will assign your code a Black-hat team to analyze and attack. If your code does not run than black-hat
-    will get the full points (since they can claim whatever they want) ☺.
+        intensive requirement and pass the code to the TA.
+        We will assign your code a Black-hat team to analyze and attack. If your code does not run than black-hat
+        will get the full points (since they can claim whatever they want) ☺.
 
 Black-hat part [40 points] due 11:59pm, April 21, 2025: you will receive the source code of the target
 team on April 15, 11:59PM, 2025. Your goal is to find weaknesses in the implementation of
-    (i) cryptographic primitives and protocols [20pnts];
-    [ii] write a report on your attacks as a part of your communication intensive requirement.
+
+    (i) cryptographic primitives and protocols [20pnts]
+
+    (ii) write a report on your attacks as a part of your communication intensive requirement.
 
 In class presentation [100 points] April 22-23, 2025: we will schedule a time slot for each group for
 presentations and demos.
