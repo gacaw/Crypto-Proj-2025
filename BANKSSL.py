@@ -1,12 +1,14 @@
 import socket
-import ecc
-import hmacFile
-from des import Prng
 from datetime import datetime
+
+from HMAC import Hmac
+from DES import Prng
+from ECC import EllipticCurve
+
 
 class Server:
     def __init__(self):
-        self.curve = ecc.EllipticCurve(a=int(0xfffffffffffffffffffffffffffffffefffffffffffffffc),
+        self.curve = EllipticCurve(a=int(0xfffffffffffffffffffffffffffffffefffffffffffffffc),
                                        b=int(0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1),
                                        p=int(0xfffffffffffffffffffffffffffffffeffffffffffffffff))
         self.G = (int(0x188da80eb03090f67cbf20eb43a18800f4ff0afd82ff1012),
@@ -14,7 +16,7 @@ class Server:
         self.private_key = None
         self.public_key = None
         self.session_key = None
-        self.hmac = hmacFile.Hmac()
+        self.hmac = Hmac()
 
     def generate_keys(self):
         # Get the current timestamp
@@ -23,12 +25,11 @@ class Server:
 
         # Convert the timestamp to binary
         binary_timestamp = ''.join(format(ord(char), '08b') for char in str(timestamp))
-
-        # Extract 10-bit keys and an 8-bit seed from the binary timestamp
-        key1 = binary_timestamp[0:10]
-        key2 = binary_timestamp[10:20]
-        key3 = binary_timestamp[20:30]
-        seed = binary_timestamp[30:38]
+        
+        key1 = binary_timestamp[0:32] + binary_timestamp[-33:-1]
+        key2 = binary_timestamp[1:33] + binary_timestamp[-33:-1]
+        key3 = binary_timestamp[2:34] + binary_timestamp[-33:-1]
+        seed = binary_timestamp[3:35] + binary_timestamp[-33:-1]
 
         prng = Prng(key1, key2, key3, seed)
 

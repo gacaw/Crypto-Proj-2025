@@ -1,16 +1,15 @@
-# bank transaction simulator: 
-from datetime import datetime
 import math
+import socket
+from datetime import datetime
 
-import ecc
-import hmacFile
-import desLarge 
-
-prng = None 
+import DES
+from HMAC import Hmac
+from ECC import EllipticCurve
 
 from ATMSSL import Client
 from BANKSSL import Server
-import socket
+
+prng = None 
 
 class Alice:
     
@@ -19,31 +18,38 @@ class Alice:
         self.__key1 = -1
         self.__key2 = -1 
         self.__key3 = -1
+
+        self.TripleDES = None
         
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = desLarge.messageToBinary(self.__key1)[0:64]
+        self.__key1 = DES.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = desLarge.messageToBinary(self.__key2)[0:64]
+        self.__key2 = DES.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = desLarge.messageToBinary(self.__key3)[0:64]
+        self.__key3 = DES.messageToBinary(self.__key3)[0:64]
+
+        self.TripleDES = DES.TripleDES(self.__key1, self.__key2, self.__key3)
         
     def depositMoneyMessage(self, money): 
         message = "d|" + str(money) 
-        message = desLarge.messageToBinary(message) 
+        message = DES.messageToBinary(message) 
         #print(len(self.__key1), len(self.__key2), len(self.__key3), message)
-        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        return(self.TripleDES.encrypt(message))
+        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def withdrawMoneyMessage(self, money): 
         message = "w|" + str(money) 
-        message = desLarge.messageToBinary(message) 
-        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        message = DES.messageToBinary(message) 
+        return(self.TripleDES.encrypt(message))
+        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def balanceMoneyMessage(self): 
         message = "b|" 
-        message = desLarge.messageToBinary(message) 
-        return(desLarge.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
+        message = DES.messageToBinary(message) 
+        return(self.TripleDES.encrypt(message))
+        # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
         
     def decryptBalance(self, message, key1, key2, key3): 
         return 5
@@ -58,15 +64,19 @@ class Bank:
         self.__key1 = -1
         self.__key2 = -1 
         self.__key3 = -1
+
+        self.TripleDES = None
     
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = desLarge.messageToBinary(self.__key1)[0:64]
+        self.__key1 = DES.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = desLarge.messageToBinary(self.__key2)[0:64]
+        self.__key2 = DES.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = desLarge.messageToBinary(self.__key3)[0:64]
+        self.__key3 = DES.messageToBinary(self.__key3)[0:64]
+
+        self.TripleDES = DES.TripleDES(self.__key1, self.__key2, self.__key3)
         
     def getMoney(self):
         return self.__money 
@@ -90,8 +100,9 @@ class Bank:
         return self.__public_key
     
     def decryptMessage(self, message): 
-        message = desLarge.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
-        message = desLarge.binaryToMessage(message) 
+        message = self.TripleDES.decrypt(message)
+        # message = DES.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
+        message = DES.binaryToMessage(message) 
         #print("!", message)
         action = message[0] 
         #print(message[2:])
@@ -176,7 +187,7 @@ def fasterModularSqrt(y, p):
 
 def sessionKeyGen(bank, hmacFxn, shaFxn): 
     # using a smaller stackoverflow curve since the standard ones are way too large for this code to handle 
-    curve = ecc.EllipticCurve(a=int(0xfffffffffffffffffffffffffffffffefffffffffffffffc), b=int(0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1), p=int(0xfffffffffffffffffffffffffffffffeffffffffffffffff))
+    curve = EllipticCurve(a=int(0xfffffffffffffffffffffffffffffffefffffffffffffffc), b=int(0x64210519e59c80e70fa7e9ab72243049feb8deecc146b9b1), p=int(0xfffffffffffffffffffffffffffffffeffffffffffffffff))
                                     
     
 
@@ -190,7 +201,7 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
     #xVal = 192779291135662930711103080
     #yVal = math.sqrt(xVal**3 + curve.a * xVal + curve.b) % curve.p
     #G = (xVal, yVal)  
-    if not curve.is_on_curve(*G):
+    if not curve.is_on_curve(G):
         raise ValueError("ERROR: Base point is not on the curve.")
 
     privateKeySize = 100000 # extend this to 1 million when submitting. This is just barely fast enough to test 
@@ -246,7 +257,7 @@ def sessionKeyGen(bank, hmacFxn, shaFxn):
     y = fasterModularSqrt(y_sqr,curve.p)
     #print(y)
     increment_counter = 0
-    while(y == None or not(curve.is_on_curve(hash_x, int(y)))):
+    while(y == None or not(curve.is_on_curve((hash_x, int(y))))):
         hash_x += 1 
         increment_counter += 1 
         y_sqr = (hash_x**3 + curve.a * hash_x + curve.b) % curve.p 
@@ -316,14 +327,14 @@ if __name__ == "__main__":
     now = datetime.now()
     timestamp = now.timestamp()
     
-    binaryTimestamp = desLarge.messageToBinary(str(timestamp)) 
+    binaryTimestamp = DES.messageToBinary(str(timestamp)) 
     prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
     prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
     prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
     prngSeed = binaryTimestamp[3:35] + binaryTimestamp[-33:-1]
     
     
-    prng = desLarge.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    prng = DES.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
     
 
     # Start the server in a separate thread
@@ -355,7 +366,7 @@ if __name__ == "__main__":
         # generates a session key fifteen times and concatenates to make up for the weird ECC bug that only allows for a maximum of 15 char long session keys 
         alice = Alice()
         bank = Bank(0)
-        myHmac = hmacFile.Hmac() 
+        myHmac = Hmac() 
 
         
         sessionKeyArr = []
@@ -374,7 +385,7 @@ if __name__ == "__main__":
 
         # Banking operations
         while True:
-            user_input = input("Enter an action (deposit <num>)(withdraw <num>)(balance): ")
+            user_input = input("\nEnter an action (deposit <num>)(withdraw <num>)(balance): ")
             if user_input.startswith("deposit "):
                 amount = int(user_input.split()[1])
                 if(amount < 0):
@@ -418,8 +429,8 @@ if __name__ == "__main__":
     now = datetime.now()
     timestamp = now.timestamp()
     
-    #print(desLarge.messageToBinary(str(timestamp)))
-    binaryTimestamp = desLarge.messageToBinary(str(timestamp)) 
+    #print(DES.messageToBinary(str(timestamp)))
+    binaryTimestamp = DES.messageToBinary(str(timestamp)) 
     prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
     prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
     prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
@@ -427,7 +438,7 @@ if __name__ == "__main__":
     
     #print(len(prngKey1), len(prngKey2), len(prngKey3), len(prngSeed))
     
-    prng = desLarge.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    prng = DES.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
     
    
     
