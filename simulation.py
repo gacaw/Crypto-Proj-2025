@@ -2,9 +2,9 @@ import math
 import socket
 from datetime import datetime
 
-import DES
-from HMAC import Hmac
-from ECC import EllipticCurve
+import des
+from hmacFile import Hmac
+from ecc import EllipticCurve
 
 from ATMSSL import Client
 from BANKSSL import Server
@@ -24,30 +24,30 @@ class Alice:
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = DES.messageToBinary(self.__key1)[0:64]
+        self.__key1 = des.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = DES.messageToBinary(self.__key2)[0:64]
+        self.__key2 = des.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = DES.messageToBinary(self.__key3)[0:64]
+        self.__key3 = des.messageToBinary(self.__key3)[0:64]
 
-        self.TripleDES = DES.TripleDES(self.__key1, self.__key2, self.__key3)
+        self.TripleDES = des.TripleDES(self.__key1, self.__key2, self.__key3)
         
     def depositMoneyMessage(self, money): 
         message = "d|" + str(money) 
-        message = DES.messageToBinary(message) 
+        message = des.messageToBinary(message) 
         #print(len(self.__key1), len(self.__key2), len(self.__key3), message)
         return(self.TripleDES.encrypt(message))
         # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def withdrawMoneyMessage(self, money): 
         message = "w|" + str(money) 
-        message = DES.messageToBinary(message) 
+        message = des.messageToBinary(message) 
         return(self.TripleDES.encrypt(message))
         # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
     
     def balanceMoneyMessage(self): 
         message = "b|" 
-        message = DES.messageToBinary(message) 
+        message = des.messageToBinary(message) 
         return(self.TripleDES.encrypt(message))
         # return(DES.tripleDES(0, message, self.__key1, self.__key2, self.__key3))
         
@@ -70,13 +70,13 @@ class Bank:
     def setSessionKey(self, sessionKey):
         self.__session_key = sessionKey 
         self.__key1 = self.__session_key[0:len(sessionKey)//3]
-        self.__key1 = DES.messageToBinary(self.__key1)[0:64]
+        self.__key1 = des.messageToBinary(self.__key1)[0:64]
         self.__key2 = self.__session_key[len(sessionKey)//3:2*len(sessionKey)//3]
-        self.__key2 = DES.messageToBinary(self.__key2)[0:64]
+        self.__key2 = des.messageToBinary(self.__key2)[0:64]
         self.__key3 = self.__session_key[2*len(sessionKey)//3:]
-        self.__key3 = DES.messageToBinary(self.__key3)[0:64]
+        self.__key3 = des.messageToBinary(self.__key3)[0:64]
 
-        self.TripleDES = DES.TripleDES(self.__key1, self.__key2, self.__key3)
+        self.TripleDES = des.TripleDES(self.__key1, self.__key2, self.__key3)
         
     def getMoney(self):
         return self.__money 
@@ -101,8 +101,8 @@ class Bank:
     
     def decryptMessage(self, message): 
         message = self.TripleDES.decrypt(message)
-        # message = DES.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
-        message = DES.binaryToMessage(message) 
+        # message = des.tripleDES(1, message, self.__key3, self.__key2, self.__key1)
+        message = des.binaryToMessage(message) 
         #print("!", message)
         action = message[0] 
         #print(message[2:])
@@ -327,14 +327,14 @@ if __name__ == "__main__":
     now = datetime.now()
     timestamp = now.timestamp()
     
-    binaryTimestamp = DES.messageToBinary(str(timestamp)) 
+    binaryTimestamp = des.messageToBinary(str(timestamp)) 
     prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
     prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
     prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
     prngSeed = binaryTimestamp[3:35] + binaryTimestamp[-33:-1]
     
     
-    prng = DES.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    prng = des.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
     
 
     # Start the server in a separate thread
@@ -430,7 +430,7 @@ if __name__ == "__main__":
     timestamp = now.timestamp()
     
     #print(DES.messageToBinary(str(timestamp)))
-    binaryTimestamp = DES.messageToBinary(str(timestamp)) 
+    binaryTimestamp = des.messageToBinary(str(timestamp)) 
     prngKey1 = binaryTimestamp[0:32] + binaryTimestamp[-33:-1]
     prngKey2 = binaryTimestamp[1:33] + binaryTimestamp[-33:-1]
     prngKey3 = binaryTimestamp[2:34] + binaryTimestamp[-33:-1]
@@ -438,7 +438,7 @@ if __name__ == "__main__":
     
     #print(len(prngKey1), len(prngKey2), len(prngKey3), len(prngSeed))
     
-    prng = DES.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
+    prng = des.Prng(prngKey1, prngKey2, prngKey3, prngSeed) 
     
    
     
