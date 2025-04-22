@@ -1,4 +1,6 @@
 # This code is a replay attack that can play the same attack the user did on the server.
+# It captures messages between the client and server, allowing the user to replay them later.
+# This code uses a concept of Man In The Middle (MITM) proxy to intercept messages.
 # This code only works if we ignore the nonce. 
 
 # You would need to comment out this line in tunnel.py line 83 to make it work:
@@ -61,7 +63,6 @@ def replay_message():
     except Exception as e:
         print(f"[REPLAY] Failed: {e}")
 
-# MITM Relay Setup (With internal server launch)
 def start_mitm_proxy():
     global client_socket, proxy_server_socket
 
